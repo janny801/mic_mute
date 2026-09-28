@@ -20,13 +20,13 @@ MicMute is designed natively for macOS using Swift, SwiftUI, and AppKit:
 
 ## 📸 Visual Overview
 
-### Menu Bar Status Indicators
-MicMute lives in your macOS menu bar, giving you an at-a-glance status of your microphone at all times:
+### Status Indicators
+MicMute lives in your macOS menu bar and optionally in [SketchyBar](#sketchybar-integration), giving you an at-a-glance status of your microphone at all times:
 
-| State | Menu Bar Icon | Description |
-| :--- | :---: | :--- |
-| **Microphone Active** | ![Microphone Active](imgs/active_mic.png) | Microphone is unmuted and capturing sound normally. |
-| **Microphone Muted** | ![Microphone Muted](imgs/muted_mic.png) | Hardware and software gain set to zero. Completely muted. |
+| State | Native Menu Bar | [SketchyBar](#sketchybar-integration) | Description |
+| :--- | :---: | :---: | :--- |
+| **Microphone Active** | ![Microphone Active](imgs/active_mic.png) | [![SketchyBar Active](imgs/sketchybar_active.png)](#sketchybar-integration) | Microphone is unmuted and capturing sound normally. |
+| **Microphone Muted** | ![Microphone Muted](imgs/muted_mic.png) | [![SketchyBar Muted](imgs/sketchybar_mute.png)](#sketchybar-integration) | Hardware and software gain set to zero. Completely muted. |
 
 ### Settings & Controls Window
 The intuitive preferences window allows you to customize shortcuts, switch operating modes, test your microphone, and verify system permissions:
@@ -127,6 +127,7 @@ Allows MicMute to start automatically when you log in.
 
 ---
 
+<a id="sketchybar-integration"></a>
 ## 📊 SketchyBar Integration
 
 MicMute includes native, zero-latency event dispatching to [SketchyBar](https://github.com/FelixKratz/SketchyBar). Whenever your microphone state changes (via global hotkey, menu bar, or push-to-talk), MicMute immediately triggers a `mic_change` event so your custom bar reflects the status with 0ms delay.
@@ -134,6 +135,7 @@ MicMute includes native, zero-latency event dispatching to [SketchyBar](https://
 You can inspect the full reference implementation in the [janny801/sketchybar_config](https://github.com/janny801/sketchybar_config) repository:
 - **Bar Configuration**: [`sketchybarrc` (Lines 128–140)](https://github.com/janny801/sketchybar_config/blob/main/sketchybarrc#L128-L140)
 - **Plugin Script**: [`plugins/mic_custom.sh`](https://github.com/janny801/sketchybar_config/blob/main/plugins/mic_custom.sh)
+- **Local File Path**: `~/.config/sketchybar/` (or `~/projects/config/sketchybar/`)
 
 ### Setup Instructions
 
