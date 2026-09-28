@@ -9,12 +9,12 @@ public struct VolumeMeterView: View {
     public init() {}
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 1. Live VU Level Meter Bar
+        VStack(alignment: .leading, spacing: 10) {
+            // 1. Continuous Live VU Level Meter Bar
             HStack(spacing: 3) {
                 ForEach(0..<segmentCount, id: \.self) { index in
                     let threshold = Float(index) / Float(segmentCount)
-                    let isActive = micTest.isRecording && !audioEngine.isMuted && micTest.audioLevel >= threshold
+                    let isActive = !audioEngine.isMuted && micTest.liveAudioLevel >= threshold
 
                     RoundedRectangle(cornerRadius: 2)
                         .fill(segmentColor(for: index, isActive: isActive))
@@ -32,64 +32,77 @@ public struct VolumeMeterView: View {
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
             )
 
-            // 2. Main Action Row (Record / Stop Test)
+            // 2. Status & Options Row
             HStack(spacing: 12) {
+                // Live Input Status Indicator
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(statusDotColor)
+                        .frame(width: 8, height: 8)
+
+                    Text(statusText)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(audioEngine.isMuted ? .red : (micTest.liveAudioLevel > 0.05 ? .green : .secondary))
+                }
+
+                Spacer()
+
+                // Test Recording Option Button
                 Button(action: {
-                    micTest.toggleRecording()
+                    if micTest.isRecordingClip {
+                        micTest.stopRecordingClip()
+                    } else {
+                        micTest.startRecordingClip()
+                    }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: micTest.isRecording ? "stop.fill" : (micTest.hasRecording ? "arrow.clockwise" : "mic.fill"))
-                        Text(micTest.isRecording ? "Stop Test" : (micTest.hasRecording ? "Record Again" : "Record Mic Test"))
+                        Image(systemName: micTest.isRecordingClip ? "stop.fill" : (micTest.hasRecording ? "arrow.clockwise" : "record.circle"))
+                        Text(micTest.isRecordingClip ? "Stop Test" : (micTest.hasRecording ? "Re-record" : "Record Test Clip"))
                     }
                 }
                 .controlSize(.small)
                 .buttonStyle(.borderedProminent)
-                .tint(micTest.isRecording ? .red : (micTest.hasRecording ? .secondary : .accentColor))
-
-                if micTest.isRecording {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                        Text(formatTime(micTest.recordingDuration))
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.medium)
-                            .foregroundColor(.red)
-
-                        if audioEngine.isMuted {
-                            Text("— (Microphone Muted)")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        } else {
-                            Text("— Speak to record...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } else if !micTest.hasRecording {
-                    Text("Click to record a test clip without feedback echo.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
+                .tint(micTest.isRecordingClip ? .red : (micTest.hasRecording ? .secondary : .accentColor))
             }
 
-            // 3. Playback Controls Card (Appears after recording)
-            if micTest.hasRecording && !micTest.isRecording {
+            // 3. Active Recording Badge
+            if micTest.isRecordingClip {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                    Text("Recording: \(formatTime(micTest.recordingDuration))")
+                        .font(.system(.caption, design: .monospaced))
+                        .fontWeight(.semibold)
+                        .foregroundColor(.red)
+
+                    Text("— Speak to record sample without feedback echo")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.red.opacity(0.08)))
+            }
+
+            // 4. Playback Controls Player (Appears when a test clip exists)
+            if micTest.hasRecording && !micTest.isRecordingClip {
                 HStack(spacing: 12) {
-                    // Play / Pause Button
+                    // Play / Pause
                     Button(action: {
                         micTest.togglePlayback()
                     }) {
                         Image(systemName: micTest.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 26))
+                            .font(.system(size: 24))
                             .foregroundColor(.accentColor)
                     }
                     .buttonStyle(.plain)
-                    .help(micTest.isPlaying ? "Pause Playback" : "Play Recorded Mic Clip")
+                    .help(micTest.isPlaying ? "Pause Playback" : "Play Recorded Mic Test")
 
-                    // Scrubber Slider
+                    // Scrubber
                     Slider(
                         value: Binding(
                             get: { micTest.playbackProgress },
@@ -104,6 +117,17 @@ public struct VolumeMeterView: View {
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundColor(.secondary)
                         .frame(minWidth: 70, alignment: .trailing)
+
+                    // Delete / Clear button
+                    Button(action: {
+                        micTest.deleteRecording()
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clear Test Recording")
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -116,6 +140,28 @@ public struct VolumeMeterView: View {
                         .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
                 )
             }
+        }
+    }
+
+    private var statusDotColor: Color {
+        if audioEngine.isMuted {
+            return .red
+        } else if micTest.liveAudioLevel > 0.05 {
+            return .green
+        } else {
+            return .secondary
+        }
+    }
+
+    private var statusText: String {
+        if audioEngine.isMuted {
+            return "Microphone Muted"
+        } else if micTest.liveAudioLevel > 0.65 {
+            return "Strong Signal (Peak)"
+        } else if micTest.liveAudioLevel > 0.05 {
+            return "Voice Detected"
+        } else {
+            return "Live Meter Ready (Speak to test)"
         }
     }
 

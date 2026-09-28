@@ -5,9 +5,12 @@ import Combine
 public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     public static let shared = MicTestManager()
 
+    // Live Monitoring State
+    @Published public private(set) var isMonitoring: Bool = false
+    @Published public private(set) var liveAudioLevel: Float = 0.0 // 0.0 to 1.0
+
     // Recording State
-    @Published public private(set) var isRecording: Bool = false
-    @Published public private(set) var audioLevel: Float = 0.0 // 0.0 to 1.0
+    @Published public private(set) var isRecordingClip: Bool = false
     @Published public private(set) var recordingDuration: TimeInterval = 0.0
     @Published public private(set) var hasRecording: Bool = false
 
@@ -33,91 +36,69 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     public override init() {
         super.init()
 
-        // Re-check existing file
+        // Check if an existing recording exists
         if FileManager.default.fileExists(atPath: recordingURL.path) {
             if let player = try? AVAudioPlayer(contentsOf: recordingURL) {
-                self.hasRecording = true
+                self.hasRecording = player.duration > 0.1
                 self.totalDuration = player.duration
             }
         }
 
-        // Stop if device changes
+        // Restart live monitoring when default device changes
         AudioEngine.shared.$defaultDeviceID
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                if self?.isRecording == true {
-                    self?.stopRecording()
+                if self?.isMonitoring == true {
+                    self?.restartMonitoring()
                 }
             }
             .store(in: &cancellables)
     }
 
     deinit {
-        stopRecording()
-        stopPlayback()
+        stopAll()
     }
 
-    // MARK: - Recording Actions
+    // MARK: - Live Monitoring
 
-    public func toggleRecording() {
-        if isRecording {
-            stopRecording()
-        } else {
-            startRecording()
-        }
-    }
-
-    public func startRecording() {
-        guard !isRecording else { return }
-
-        // Stop any active playback
-        stopPlayback()
+    public func startLiveMonitoring() {
+        guard !isMonitoring else { return }
 
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
         if status == .notDetermined {
             PermissionManager.shared.requestMicrophonePermission { [weak self] granted in
                 if granted {
-                    self?.beginRecordingEngine()
+                    self?.beginAudioEngine()
                 }
             }
         } else if status == .authorized {
-            beginRecordingEngine()
-        } else {
-            PermissionManager.shared.openSystemSettingsMicrophone()
+            beginAudioEngine()
         }
     }
 
-    private func beginRecordingEngine() {
-        // Clean up previous file
-        try? FileManager.default.removeItem(at: recordingURL)
+    private func beginAudioEngine() {
+        guard audioEngine == nil else { return }
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
         let format = input.inputFormat(forBus: 0)
 
         guard format.sampleRate > 0 && format.channelCount > 0 else {
-            NSLog("[MicMute] Invalid audio input format.")
+            NSLog("[MicMute] Invalid audio input format for monitoring.")
             return
         }
 
-        do {
-            self.recordedAudioFile = try AVAudioFile(forWriting: recordingURL, settings: format.settings)
-        } catch {
-            NSLog("[MicMute] Failed to create audio file: \(error.localizedDescription)")
-            return
-        }
-
-        self.recordingDuration = 0.0
-
-        // Install buffer tap: writes to file AND updates volume meter
+        // Tap for live volume meter (and optional recording writing)
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self = self else { return }
 
-            // 1. Write buffer to recording file (never route to speakers to avoid feedback loops!)
-            try? self.recordedAudioFile?.write(from: buffer)
+            // 1. If currently recording a test clip, write buffer to file (never to speakers!)
+            if self.isRecordingClip {
+                try? self.recordedAudioFile?.write(from: buffer)
+            }
 
-            // 2. Compute RMS volume level for UI meter
+            // 2. Compute live volume level
             guard let channelData = buffer.floatChannelData?[0] else { return }
             let frameLength = Int(buffer.frameLength)
             guard frameLength > 0 else { return }
@@ -129,13 +110,19 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
             }
             let rms = sqrt(sum / Float(frameLength))
             let db = 20 * log10(max(rms, 0.0001))
+            // Map -48dB ... -3dB to 0.0 ... 1.0
             let rawLevel = max(0.0, min(1.0, (db + 48.0) / 45.0))
 
             DispatchQueue.main.async {
-                if rawLevel > self.audioLevel {
-                    self.audioLevel = rawLevel
+                // If system microphone is muted, force level to 0
+                if AudioEngine.shared.isMuted {
+                    self.liveAudioLevel = 0.0
                 } else {
-                    self.audioLevel = max(0.0, self.audioLevel * 0.82 + rawLevel * 0.18)
+                    if rawLevel > self.liveAudioLevel {
+                        self.liveAudioLevel = rawLevel
+                    } else {
+                        self.liveAudioLevel = max(0.0, self.liveAudioLevel * 0.82 + rawLevel * 0.18)
+                    }
                 }
             }
         }
@@ -143,27 +130,18 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
         do {
             try engine.start()
             self.audioEngine = engine
-            self.isRecording = true
-            self.hasRecording = false
-
-            // Track duration
-            recordingTimer?.invalidate()
-            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                guard let self = self else { return }
-                self.recordingDuration += 0.1
-            }
+            self.isMonitoring = true
         } catch {
-            NSLog("[MicMute] Failed to start recording engine: \(error.localizedDescription)")
-            self.audioLevel = 0.0
-            self.isRecording = false
+            NSLog("[MicMute] Failed to start live monitoring engine: \(error.localizedDescription)")
+            self.isMonitoring = false
+            self.liveAudioLevel = 0.0
         }
     }
 
-    public func stopRecording() {
-        guard isRecording else { return }
-
-        recordingTimer?.invalidate()
-        recordingTimer = nil
+    public func stopLiveMonitoring() {
+        if isRecordingClip {
+            stopRecordingClip()
+        }
 
         if let engine = audioEngine {
             engine.inputNode.removeTap(onBus: 0)
@@ -171,17 +149,86 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
             self.audioEngine = nil
         }
 
-        self.recordedAudioFile = nil
-        self.isRecording = false
-        self.audioLevel = 0.0
+        self.isMonitoring = false
+        self.liveAudioLevel = 0.0
+    }
 
-        // Check file created
+    private func restartMonitoring() {
+        let wasRecording = isRecordingClip
+        if wasRecording {
+            stopRecordingClip()
+        }
+        stopLiveMonitoring()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.startLiveMonitoring()
+        }
+    }
+
+    // MARK: - Recording Clip (Test Voice)
+
+    public func startRecordingClip() {
+        guard !isRecordingClip else { return }
+
+        // Stop any active playback
+        stopPlayback()
+
+        // Ensure engine is running
+        if !isMonitoring {
+            startLiveMonitoring()
+        }
+
+        guard let engine = audioEngine else { return }
+        let format = engine.inputNode.inputFormat(forBus: 0)
+
+        try? FileManager.default.removeItem(at: recordingURL)
+
+        do {
+            self.recordedAudioFile = try AVAudioFile(forWriting: recordingURL, settings: format.settings)
+        } catch {
+            NSLog("[MicMute] Failed to create test recording file: \(error.localizedDescription)")
+            return
+        }
+
+        self.recordingDuration = 0.0
+        self.isRecordingClip = true
+        self.hasRecording = false
+
+        recordingTimer?.invalidate()
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.recordingDuration += 0.1
+        }
+    }
+
+    public func stopRecordingClip() {
+        guard isRecordingClip else { return }
+
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+
+        self.isRecordingClip = false
+        self.recordedAudioFile = nil
+
+        // Verify recorded file
         if FileManager.default.fileExists(atPath: recordingURL.path) {
             if let player = try? AVAudioPlayer(contentsOf: recordingURL) {
                 self.totalDuration = player.duration
                 self.hasRecording = player.duration > 0.1
+                self.audioPlayer = player
+                player.delegate = self
+                player.prepareToPlay()
             }
         }
+    }
+
+    public func deleteRecording() {
+        stopPlayback()
+        try? FileManager.default.removeItem(at: recordingURL)
+        self.hasRecording = false
+        self.totalDuration = 0.0
+        self.playbackProgress = 0.0
+        self.playbackTime = 0.0
     }
 
     // MARK: - Playback Actions
@@ -197,7 +244,6 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     public func playRecording() {
         guard hasRecording else { return }
 
-        // If player is not initialized or finished, create it
         if audioPlayer == nil {
             do {
                 let player = try AVAudioPlayer(contentsOf: recordingURL)
@@ -213,7 +259,6 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
 
         guard let player = audioPlayer else { return }
 
-        // If was at the end, restart from beginning
         if player.currentTime >= player.duration - 0.05 {
             player.currentTime = 0
         }
@@ -270,12 +315,17 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
         self.playbackProgress = 1.0
         self.playbackTime = totalDuration
 
-        // Reset to 0 after short delay so user can click play again
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self = self, !self.isPlaying else { return }
             self.playbackProgress = 0.0
             self.playbackTime = 0.0
             self.audioPlayer?.currentTime = 0
         }
+    }
+
+    public func stopAll() {
+        stopRecordingClip()
+        stopPlayback()
+        stopLiveMonitoring()
     }
 }

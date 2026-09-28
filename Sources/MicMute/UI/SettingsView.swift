@@ -33,10 +33,10 @@ public struct SettingsView: View {
         .onAppear {
             permissions.checkPermissions()
             audioEngine.refreshInputDevices()
+            micTest.startLiveMonitoring()
         }
         .onDisappear {
-            micTest.stopRecording()
-            micTest.stopPlayback()
+            micTest.stopAll()
         }
         .onReceive(timer) { _ in
             permissions.checkPermissions()
@@ -369,7 +369,7 @@ public struct SettingsView: View {
             .foregroundColor(.red)
 
             Button("Done") {
-                NSApp.keyWindow?.close()
+                SettingsWindowController.shared.closeWindow()
             }
             .keyboardShortcut(.defaultAction)
             .controlSize(.small)

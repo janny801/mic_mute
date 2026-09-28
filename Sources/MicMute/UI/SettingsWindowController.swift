@@ -6,7 +6,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     private var window: NSWindow?
 
-    public func showWindow() {
+    @objc public func showWindow() {
         NSApp.setActivationPolicy(.regular)
 
         if let existing = window {
@@ -20,7 +20,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         let hostingController = NSHostingController(rootView: settingsView)
 
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 640),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -36,6 +36,12 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         newWindow.orderFrontRegardless()
         newWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc public func closeWindow() {
+        window?.orderOut(nil)
+        // Keep MicMute active so pressing ⌘, right after Done re-opens cleanly
         NSApp.activate(ignoringOtherApps: true)
     }
 
