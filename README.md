@@ -127,6 +127,59 @@ Allows MicMute to start automatically when you log in.
 
 ---
 
+## 📊 SketchyBar Integration
+
+MicMute includes native, zero-latency event dispatching to [SketchyBar](https://github.com/FelixKratz/SketchyBar). Whenever your microphone state changes (via global hotkey, menu bar, or push-to-talk), MicMute immediately triggers a `mic_change` event so your custom bar reflects the status with 0ms delay.
+
+You can inspect the full reference implementation in the [janny801/sketchybar_config](https://github.com/janny801/sketchybar_config) repository:
+- **Bar Configuration**: [`sketchybarrc` (Lines 128–140)](https://github.com/janny801/sketchybar_config/blob/main/sketchybarrc#L128-L140)
+- **Plugin Script**: [`plugins/mic_custom.sh`](https://github.com/janny801/sketchybar_config/blob/main/plugins/mic_custom.sh)
+
+### Setup Instructions
+
+1. **Add the Microphone item to `~/.config/sketchybar/sketchybarrc`**:
+   ```bash
+   # Microphone (MicMute)
+   sketchybar --add event mic_change \
+              --add item mic right \
+              --set mic \
+              label.drawing=off \
+              background.drawing=off \
+              icon.padding_left=10 \
+              icon.padding_right=10 \
+              update_freq=3 \
+              script="$PLUGIN_DIR/mic_custom.sh" \
+              click_script="osascript -e 'tell application \"System Events\" to key code 42 using command down'; $PLUGIN_DIR/mic_custom.sh" \
+              --subscribe mic mic_change volume_change
+   ```
+
+2. **Create the Plugin Script at `~/.config/sketchybar/plugins/mic_custom.sh`**:
+   ```bash
+   #!/bin/bash
+
+   # Query current microphone input volume (0 = muted)
+   MIC_VOL="$(osascript -e 'input volume of (get volume settings)' 2>/dev/null || echo "100")"
+
+   if [[ "$MIC_VOL" == "0" ]]; then
+     # Muted: Red slashed microphone icon
+     sketchybar --set "$NAME" icon="" icon.color=0xffff5555
+   else
+     # Active: White active microphone icon
+     sketchybar --set "$NAME" icon="" icon.color=0xffffffff
+   fi
+   ```
+
+3. **Make the Plugin Executable & Reload SketchyBar**:
+   ```bash
+   chmod +x ~/.config/sketchybar/plugins/mic_custom.sh
+   sketchybar --reload
+   ```
+
+> [!NOTE]
+> Clicking the microphone icon on SketchyBar simulates the <kbd>⌘</kbd> + <kbd>\</kbd> shortcut to toggle MicMute, providing seamless bidirectional control between SketchyBar and MicMute.
+
+---
+
 ## ⌨️ Keyboard Shortcuts Reference
 
 | Shortcut | Action |
