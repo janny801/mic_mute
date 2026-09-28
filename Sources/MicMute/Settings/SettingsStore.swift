@@ -38,6 +38,7 @@ public final class SettingsStore: ObservableObject {
         static let muteSoundName = "muteSoundName"
         static let unmuteSoundName = "unmuteSoundName"
         static let launchAtLogin = "launchAtLogin"
+        static let faceTimeSyncEnabled = "faceTimeSyncEnabled"
     }
 
     @Published public var mode: AppMuteMode {
@@ -78,6 +79,12 @@ public final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published public var faceTimeSyncEnabled: Bool {
+        didSet {
+            defaults.set(faceTimeSyncEnabled, forKey: Keys.faceTimeSyncEnabled)
+        }
+    }
+
     public init() {
         // Mode
         if let modeRaw = defaults.string(forKey: Keys.muteMode),
@@ -108,6 +115,13 @@ public final class SettingsStore: ObservableObject {
 
         // Launch at login
         self.launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
+
+        // FaceTime Sync
+        if defaults.object(forKey: Keys.faceTimeSyncEnabled) != nil {
+            self.faceTimeSyncEnabled = defaults.bool(forKey: Keys.faceTimeSyncEnabled)
+        } else {
+            self.faceTimeSyncEnabled = true
+        }
     }
 
     public func resetToDefaults() {
@@ -116,5 +130,6 @@ public final class SettingsStore: ObservableObject {
         self.audioFeedbackEnabled = true
         self.muteSoundName = "Tink"
         self.unmuteSoundName = "Pop"
+        self.faceTimeSyncEnabled = true
     }
 }

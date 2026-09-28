@@ -19,6 +19,7 @@ public struct SettingsView: View {
                     operatingModeSection
                     hotkeySection
                     audioFeedbackSection
+                    integrationsSection
                     permissionsSection
                 }
                 .padding(.horizontal, 22)
@@ -39,6 +40,7 @@ public struct SettingsView: View {
     }
 
     // MARK: - Header
+
     private var headerView: some View {
         HStack(spacing: 16) {
             ZStack {
@@ -239,6 +241,21 @@ public struct SettingsView: View {
                     }
                     .padding(.top, 2)
                 }
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 2)
+        }
+    }
+
+    // MARK: - Call Integrations Section
+    private var integrationsSection: some View {
+        GroupBox(label: Label("Call Integrations", systemImage: "phone.badge.waveform")) {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("Sync with Apple FaceTime calls", isOn: $settings.faceTimeSyncEnabled)
+
+                Text("Automatically synchronizes FaceTime's call mute switch with your global MicMute hotkey.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             .padding(.top, 6)
             .padding(.bottom, 2)

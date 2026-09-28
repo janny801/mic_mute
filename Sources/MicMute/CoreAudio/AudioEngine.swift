@@ -436,6 +436,7 @@ public final class AudioEngine: ObservableObject {
 
         SoundCueManager.shared.playCue(forMuted: muted)
         notifySketchyBar()
+        FaceTimeSyncManager.shared.syncFaceTimeMute(shouldBeMuted: muted)
     }
 
     private func notifySketchyBar() {
