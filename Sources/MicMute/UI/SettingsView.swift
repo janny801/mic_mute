@@ -7,8 +7,6 @@ public struct SettingsView: View {
     @ObservedObject var permissions = PermissionManager.shared
     @ObservedObject var micTest = MicTestManager.shared
 
-    private let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
-
     public init() {}
 
     public var body: some View {
@@ -29,7 +27,7 @@ public struct SettingsView: View {
             Divider()
             footerView
         }
-        .frame(width: 530, height: 640)
+        .frame(width: 530, height: 720)
         .onAppear {
             permissions.checkPermissions()
             audioEngine.refreshInputDevices()
@@ -37,9 +35,6 @@ public struct SettingsView: View {
         }
         .onDisappear {
             micTest.stopAll()
-        }
-        .onReceive(timer) { _ in
-            permissions.checkPermissions()
         }
     }
 
@@ -270,7 +265,15 @@ public struct SettingsView: View {
 
                     Spacer()
 
-                    if !permissions.isAccessibilityGranted {
+                    if permissions.isAccessibilityGranted {
+                        Text("Granted")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.green.opacity(0.12)))
+                    } else {
                         Button("Open Settings") {
                             permissions.requestAccessibilityPermission()
                         }
@@ -318,7 +321,15 @@ public struct SettingsView: View {
 
                     Spacer()
 
-                    if !isMicGranted {
+                    if isMicGranted {
+                        Text("Granted")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.green.opacity(0.12)))
+                    } else {
                         Button(permissions.microphoneStatus == .notDetermined ? "Authorize" : "Open Settings") {
                             permissions.requestMicrophonePermission()
                         }
@@ -345,6 +356,19 @@ public struct SettingsView: View {
                     .menuIndicator(.hidden)
                     .frame(width: 24, height: 24)
                     .help("Open Microphone Settings")
+                }
+
+                let isMicGranted = (permissions.microphoneStatus == .authorized)
+                if !permissions.isAccessibilityGranted || !isMicGranted {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Text("If permission is already turned on in macOS System Settings, toggle the switch off and on once to refresh.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
                 }
             }
             .padding(.top, 6)

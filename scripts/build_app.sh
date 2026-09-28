@@ -92,8 +92,8 @@ if [ ! -f "$APP_BUNDLE/Contents/Resources/AppIcon.icns" ]; then
     fi
 fi
 
-# Ad-hoc code sign for local execution and macOS security permissions
+# Ad-hoc code sign for local execution and macOS security permissions with stable Designated Requirement
 echo "==> Code signing application bundle..."
-codesign --force --deep --sign - "$APP_BUNDLE"
+codesign --force --deep -s - --requirements '=designated => identifier "com.janred.MicMute"' "$APP_BUNDLE"
 
 echo "==> Build succeeded: $APP_BUNDLE"

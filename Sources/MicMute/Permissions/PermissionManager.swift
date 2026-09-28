@@ -32,9 +32,12 @@ public final class PermissionManager: ObservableObject {
     }
 
     public func checkPermissions() {
-        DispatchQueue.main.async {
-            // Check Accessibility
-            let axTrusted = AXIsProcessTrusted()
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false] as CFDictionary
+        let axTrusted = AXIsProcessTrustedWithOptions(options)
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
             if self.isAccessibilityGranted != axTrusted {
                 self.isAccessibilityGranted = axTrusted
                 if axTrusted {
@@ -42,8 +45,6 @@ public final class PermissionManager: ObservableObject {
                 }
             }
 
-            // Check Microphone
-            let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
             if self.microphoneStatus != micStatus {
                 self.microphoneStatus = micStatus
             }

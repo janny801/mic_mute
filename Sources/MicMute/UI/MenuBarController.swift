@@ -12,6 +12,7 @@ public final class MenuBarController: NSObject {
     private var statusMenuItem: NSMenuItem?
     private var modeMenuItem: NSMenuItem?
     private var deviceMenuItem: NSMenuItem?
+    private var permissionsMenuItem: NSMenuItem?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,6 +62,16 @@ public final class MenuBarController: NSObject {
         deviceItem.submenu = NSMenu()
         menu.addItem(deviceItem)
         self.deviceMenuItem = deviceItem
+
+        // 4. Permissions Status Item
+        let permItem = NSMenuItem(
+            title: "Permissions: Checking...",
+            action: #selector(openSettingsClicked),
+            keyEquivalent: ""
+        )
+        permItem.target = self
+        menu.addItem(permItem)
+        self.permissionsMenuItem = permItem
 
         menu.addItem(NSMenuItem.separator())
 
@@ -125,6 +136,21 @@ public final class MenuBarController: NSObject {
 
         // Observe keyCombo
         SettingsStore.shared.$keyCombo
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateUI()
+            }
+            .store(in: &cancellables)
+
+        // Observe permissions
+        PermissionManager.shared.$isAccessibilityGranted
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateUI()
+            }
+            .store(in: &cancellables)
+
+        PermissionManager.shared.$microphoneStatus
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateUI()
@@ -197,6 +223,26 @@ public final class MenuBarController: NSObject {
                 submenu.addItem(item)
             }
             deviceMenuItem.submenu = submenu
+        }
+
+        // 4. Update Permissions Status Item
+        if let permissionsMenuItem = self.permissionsMenuItem {
+            let isAxGranted = PermissionManager.shared.isAccessibilityGranted
+            let isMicGranted = (PermissionManager.shared.microphoneStatus == .authorized)
+
+            if isAxGranted && isMicGranted {
+                permissionsMenuItem.title = "Permissions: Granted ✓"
+                permissionsMenuItem.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
+            } else if !isAxGranted && !isMicGranted {
+                permissionsMenuItem.title = "⚠️ Permissions Required (Mic & Accessibility)"
+                permissionsMenuItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+            } else if !isAxGranted {
+                permissionsMenuItem.title = "⚠️ Accessibility Permission Required"
+                permissionsMenuItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+            } else {
+                permissionsMenuItem.title = "⚠️ Microphone Permission Required"
+                permissionsMenuItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
+            }
         }
     }
 
