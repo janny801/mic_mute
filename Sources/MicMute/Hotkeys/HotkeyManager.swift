@@ -16,6 +16,7 @@ public final class HotkeyManager: ObservableObject {
     private var eventTapPort: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var isKeyDownActive: Bool = false
+    private var lastToggleTime: Date = Date.distantPast
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -56,7 +57,7 @@ public final class HotkeyManager: ObservableObject {
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isGranted in
-                if isGranted {
+                if isGranted && self?.carbonHotKeyRef == nil {
                     self?.setupEventTap()
                 }
             }
@@ -69,11 +70,14 @@ public final class HotkeyManager: ObservableObject {
     }
 
     public func registerHotkeys() {
-        // 1. Try to set up CGEventTap first (supports both KeyDown and KeyUp, ideal for Push-to-Talk)
-        setupEventTap()
-
-        // 2. Also register Carbon HotKey as a fallback for Toggle mode
+        // 1. Primary: Carbon HotKey handles both KeyDown (Toggle) and KeyDown/KeyUp (Push-to-Talk)
+        // Works globally across all apps, consumes shortcut, zero latency, no permissions required.
         setupCarbonHotkey()
+
+        // 2. Fallback: If Carbon fails to register the key combination, fall back to CGEventTap
+        if carbonHotKeyRef == nil {
+            setupEventTap()
+        }
     }
 
     public func unregisterHotkeys() {
@@ -81,7 +85,7 @@ public final class HotkeyManager: ObservableObject {
         removeCarbonHotkey()
     }
 
-    // MARK: - Carbon HotKey (Fallback & Toggle)
+    // MARK: - Carbon HotKey (Primary)
 
     private func setupCarbonHotkey() {
         removeCarbonHotkey()
@@ -119,11 +123,6 @@ public final class HotkeyManager: ObservableObject {
 
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
                 let kind = GetEventKind(eventRef)
-
-                // If event tap is already active and handling events, avoid double-firing
-                if manager.eventTapPort != nil && PermissionManager.shared.isAccessibilityGranted {
-                    return CallNextEventHandler(nextHandler, eventRef)
-                }
 
                 DispatchQueue.main.async {
                     if kind == UInt32(kEventHotKeyPressed) {
@@ -170,7 +169,7 @@ public final class HotkeyManager: ObservableObject {
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
 
         let tap = CGEvent.tapCreate(
-            tap: .cgAnnotatedSessionEventTap,
+            tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .defaultTap,
             eventsOfInterest: CGEventMask(eventMask),
@@ -266,6 +265,9 @@ public final class HotkeyManager: ObservableObject {
         let mode = SettingsStore.shared.mode
         switch mode {
         case .toggle:
+            let now = Date()
+            guard now.timeIntervalSince(lastToggleTime) > 0.15 else { return }
+            lastToggleTime = now
             AudioEngine.shared.toggleMute()
         case .pushToTalk:
             if !isKeyDownActive {
