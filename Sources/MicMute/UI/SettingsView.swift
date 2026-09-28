@@ -32,7 +32,6 @@ public struct SettingsView: View {
         .onAppear {
             permissions.checkPermissions()
             audioEngine.refreshInputDevices()
-            micTest.startLiveMonitoring()
         }
         .onDisappear {
             micTest.stopAll()

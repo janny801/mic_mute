@@ -25,6 +25,9 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     private var audioPlayer: AVAudioPlayer?
     private var playbackTimer: Timer?
     private var recordingTimer: Timer?
+    private var liveMonitoringTimeoutTimer: Timer?
+
+    @Published public private(set) var isManualMonitoringActive: Bool = false
 
     private let recordingURL: URL = {
         let tempDir = FileManager.default.temporaryDirectory
@@ -61,6 +64,27 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     }
 
     // MARK: - Live Monitoring
+
+    public func toggleLiveMonitoring() {
+        if isManualMonitoringActive {
+            isManualMonitoringActive = false
+            stopLiveMonitoring()
+        } else {
+            isManualMonitoringActive = true
+            startLiveMonitoring()
+
+            // Automatically stop after 60 seconds to release microphone and restore audio profiles
+            liveMonitoringTimeoutTimer?.invalidate()
+            liveMonitoringTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
+                DispatchQueue.main.async {
+                    if self?.isManualMonitoringActive == true && !(self?.isRecordingClip ?? false) {
+                        self?.isManualMonitoringActive = false
+                        self?.stopLiveMonitoring()
+                    }
+                }
+            }
+        }
+    }
 
     public func startLiveMonitoring() {
         guard !isMonitoring else { return }
@@ -139,6 +163,10 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     }
 
     public func stopLiveMonitoring() {
+        liveMonitoringTimeoutTimer?.invalidate()
+        liveMonitoringTimeoutTimer = nil
+        isManualMonitoringActive = false
+
         if isRecordingClip {
             stopRecordingClip()
         }
@@ -154,6 +182,11 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     }
 
     private func restartMonitoring() {
+        guard isManualMonitoringActive || isRecordingClip else {
+            stopLiveMonitoring()
+            return
+        }
+
         let wasRecording = isRecordingClip
         if wasRecording {
             stopRecordingClip()
@@ -161,7 +194,8 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
         stopLiveMonitoring()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.startLiveMonitoring()
+            guard let self = self, self.isManualMonitoringActive else { return }
+            self.startLiveMonitoring()
         }
     }
 
@@ -209,6 +243,11 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
 
         self.isRecordingClip = false
         self.recordedAudioFile = nil
+
+        // If manual live monitoring was not requested, immediately shut down engine to release microphone
+        if !isManualMonitoringActive {
+            stopLiveMonitoring()
+        }
 
         // Verify recorded file
         if FileManager.default.fileExists(atPath: recordingURL.path) {
@@ -324,6 +363,9 @@ public final class MicTestManager: NSObject, ObservableObject, AVAudioPlayerDele
     }
 
     public func stopAll() {
+        liveMonitoringTimeoutTimer?.invalidate()
+        liveMonitoringTimeoutTimer = nil
+        isManualMonitoringActive = false
         stopRecordingClip()
         stopPlayback()
         stopLiveMonitoring()

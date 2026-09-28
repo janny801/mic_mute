@@ -14,7 +14,7 @@ public struct VolumeMeterView: View {
             HStack(spacing: 3) {
                 ForEach(0..<segmentCount, id: \.self) { index in
                     let threshold = Float(index) / Float(segmentCount)
-                    let isActive = !audioEngine.isMuted && micTest.liveAudioLevel >= threshold
+                    let isActive = micTest.isMonitoring && !audioEngine.isMuted && micTest.liveAudioLevel >= threshold
 
                     RoundedRectangle(cornerRadius: 2)
                         .fill(segmentColor(for: index, isActive: isActive))
@@ -33,7 +33,7 @@ public struct VolumeMeterView: View {
             )
 
             // 2. Status & Options Row
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // Live Input Status Indicator
                 HStack(spacing: 6) {
                     Circle()
@@ -43,10 +43,23 @@ public struct VolumeMeterView: View {
                     Text(statusText)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(audioEngine.isMuted ? .red : (micTest.liveAudioLevel > 0.05 ? .green : .secondary))
+                        .foregroundColor(statusTextColor)
                 }
 
                 Spacer()
+
+                // Live VU Meter Toggle Button
+                Button(action: {
+                    micTest.toggleLiveMonitoring()
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: micTest.isManualMonitoringActive ? "stop.fill" : "waveform")
+                        Text(micTest.isManualMonitoringActive ? "Stop Meter" : "Live Test")
+                    }
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
+                .tint(micTest.isManualMonitoringActive ? .orange : .accentColor)
 
                 // Test Recording Option Button
                 Button(action: {
@@ -56,9 +69,9 @@ public struct VolumeMeterView: View {
                         micTest.startRecordingClip()
                     }
                 }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: micTest.isRecordingClip ? "stop.fill" : (micTest.hasRecording ? "arrow.clockwise" : "record.circle"))
-                        Text(micTest.isRecordingClip ? "Stop Test" : (micTest.hasRecording ? "Re-record" : "Record Test Clip"))
+                        Text(micTest.isRecordingClip ? "Stop Clip" : (micTest.hasRecording ? "Re-record" : "Record Clip"))
                     }
                 }
                 .controlSize(.small)
@@ -146,6 +159,20 @@ public struct VolumeMeterView: View {
     private var statusDotColor: Color {
         if audioEngine.isMuted {
             return .red
+        } else if !micTest.isMonitoring {
+            return .secondary.opacity(0.6)
+        } else if micTest.liveAudioLevel > 0.05 {
+            return .green
+        } else {
+            return .secondary
+        }
+    }
+
+    private var statusTextColor: Color {
+        if audioEngine.isMuted {
+            return .red
+        } else if !micTest.isMonitoring {
+            return .secondary
         } else if micTest.liveAudioLevel > 0.05 {
             return .green
         } else {
@@ -156,12 +183,16 @@ public struct VolumeMeterView: View {
     private var statusText: String {
         if audioEngine.isMuted {
             return "Microphone Muted"
+        } else if micTest.isRecordingClip {
+            return "Recording clip..."
+        } else if !micTest.isMonitoring {
+            return "Meter Idle"
         } else if micTest.liveAudioLevel > 0.65 {
             return "Strong Signal (Peak)"
         } else if micTest.liveAudioLevel > 0.05 {
             return "Voice Detected"
         } else {
-            return "Live Meter Ready (Speak to test)"
+            return "Listening... (Speak to test)"
         }
     }
 
