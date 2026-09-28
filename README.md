@@ -1,119 +1,151 @@
-# MicMute (Native macOS Menu Bar Utility)
+# MicMute 🎙️
 
-A lightweight, native macOS menu bar utility built in **Swift and SwiftUI / AppKit** for system-level microphone muting and toggling with low-latency audio feedback, global push-to-talk support, and a preferences UI.
-
----
-
-## Features
-
-1. **Persistent Menu Bar Status Item**
-   - Displays real-time microphone status in the macOS menu bar:
-     - 🎙️ **Active / Unmuted**: Microphone icon with "Active" label (`mic.fill`).
-     - 🔇 **Muted**: Slashed microphone icon with "Muted" label (`mic.slash.fill`).
-   - Clickable dropdown menu:
-     - Current mic state indicator (click to toggle instantly).
-     - Operating mode indicator (`Toggle` or `Push-to-Talk`).
-     - Default audio input device name.
-     - "Preferences / Settings..." (`⌘,`).
-     - "Quit MicMute" (`⌘Q`).
-
-2. **Global Hotkey & Interception**
-   - **Default Hotkey**: `Command + \` (`⌘\`).
-   - Works globally across macOS, regardless of which application (FaceTime, Zoom, Teams, Discord, games, browser) has focus.
-   - Suppresses shortcut keystrokes so typing into text editors isn't disrupted.
-
-3. **Operating Modes**
-   - **Toggle Mode (Default)**: Press `⌘\` once to mute, press again to unmute.
-   - **Push-to-Talk Mode**: The microphone stays muted by default and unmutes only while the assigned key is actively held down; it automatically re-mutes when released.
-
-4. **Low-Latency Audio Cues**
-   - Plays distinct system sound cues through your default audio output device without blocking or lagging the mic toggle:
-     - **Unmuted**: High-tone cheerful cue (`Pop`).
-     - **Muted**: Low-tone subtle cue (`Tink`).
-   - Can be enabled or disabled in Preferences, with instant sound preview buttons.
-
-5. **CoreAudio Input Engine**
-   - Directly controls the default macOS input device using `CoreAudio` APIs.
-   - Sets hardware mute (`kAudioDevicePropertyMute`) if supported by the input device.
-   - Adjusts input volume scalar (`kAudioDevicePropertyVolumeScalar`) to `0.0` when muting and smoothly restores the previous gain when unmuting.
-   - Dynamically listens to system audio device changes (e.g. plugging in AirPods or a USB microphone) and updates automatically.
-
-6. **Native Preferences & Settings Window**
-   - Clean SwiftUI preferences window automatically opened on launch and accessible from the menu bar item.
-   - **Interactive Hotkey Recorder**: Click to record custom shortcut combinations (handles modifier keys + keycodes).
-   - **Mode Selection**: Switch between Toggle and Push-to-Talk.
-   - **Live Mic Controls**: Instant Mute/Unmute toggle button.
-   - **Permissions Status & Onboarding**: Clear status indicators for macOS Accessibility and Microphone permissions, with direct links to macOS System Settings.
+A fast, lightweight, and native macOS menu bar application that gives you instant system-wide control over your microphone. Mute or unmute globally using a keyboard shortcut, switch to push-to-talk, test your microphone without ringing feedback loops, and receive pleasant audio feedback cues without interrupting your calls, meetings, or games.
 
 ---
 
-## Project Structure
+## 🖥️ Compatibility
 
-```
-mac-mic-mute/
-├── Package.swift                    # Swift Package Manager manifest
-├── Makefile                         # Convenient build and run commands
-├── scripts/
-│   └── build_app.sh                 # Builds release/debug MicMute.app bundle with icons & ad-hoc signing
-├── Resources/
-│   ├── Info.plist                   # App bundle metadata and permissions
-│   └── AppIcon.icns                 # Multi-resolution macOS application icon
-└── Sources/
-    └── MicMute/
-        ├── main.swift               # Application entry point
-        ├── App/
-        │   └── AppDelegate.swift    # App lifecycle and initial window presentation
-        ├── CoreAudio/
-        │   ├── AudioEngine.swift    # Hardware mute, volume scalar control, and device switching
-        │   └── MicTestManager.swift # Live audio input testing and volume metering
-        ├── Sound/
-        │   └── SoundCueManager.swift# Low-latency audio cues (Pop / Tink)
-        ├── Hotkeys/
-        │   ├── KeyCombo.swift       # Shortcut model, modifiers, and UCKeyTranslate layout mapping
-        │   └── HotkeyManager.swift  # CGEventTap + Carbon hotkey handling for Toggle & Push-to-Talk
-        ├── Settings/
-        │   └── SettingsStore.swift  # UserDefaults persistence and reactive state
-        ├── Permissions/
-        │   └── PermissionManager.swift # Accessibility & Microphone permission handling
-        └── UI/
-            ├── MenuBarController.swift      # NSStatusItem and dropdown menu management
-            ├── SettingsWindowController.swift # NSWindow management for Preferences
-            ├── SettingsView.swift           # SwiftUI Preferences UI
-            ├── VolumeMeterView.swift        # Real-time LED-style audio VU meter
-            └── HotkeyRecorderView.swift     # Interactive key recording view
-```
+MicMute is designed natively for macOS using Swift, SwiftUI, and AppKit:
+
+- **Supported macOS Versions**: 
+  - **macOS 15.0+ (Sequoia)**
+  - **macOS 14.0+ (Sonoma)**
+  - **macOS 13.0+ (Ventura)**
+- **Hardware Architecture**: 
+  - **Apple Silicon** (M1, M2, M3, M4)
+  - **Intel** Macs (x86_64)
 
 ---
 
-## How to Build & Run
+## 📸 Visual Overview
 
-### Quick Start with Make
+### Menu Bar Status Indicators
+MicMute lives in your macOS menu bar, giving you an at-a-glance status of your microphone at all times:
+
+| State | Menu Bar Icon | Description |
+| :--- | :---: | :--- |
+| **Microphone Active** | ![Microphone Active](imgs/active_mic.png) | Microphone is unmuted and capturing sound normally. |
+| **Microphone Muted** | ![Microphone Muted](imgs/muted_mic.png) | Hardware and software gain set to zero. Completely muted. |
+
+### Settings & Controls Window
+The intuitive preferences window allows you to customize shortcuts, switch operating modes, test your microphone, and verify system permissions:
+
+<p align="center">
+  <img src="imgs/menu_screen.png" alt="MicMute Settings & Controls Window" width="520">
+</p>
+
+---
+
+## ✨ Features
+
+### 1. Global Hotkey (`⌘\` Default)
+- Works system-wide across all applications—whether you are in **Zoom**, **Google Meet**, **Microsoft Teams**, **Discord**, **FaceTime**, gaming, or browsing.
+- You do not need to focus the application to toggle your microphone.
+- Keyboard keystrokes are cleanly intercepted so stray characters are not typed into your active document or chat window.
+- Fully customizable: click **"Record New"** in Settings to bind your preferred key combination.
+
+### 2. Dual Operating Modes
+- **Toggle Mode (Default)**: Press `⌘\` once to mute, press again to unmute.
+- **Push-to-Talk Mode**: The microphone remains muted by default and un-mutes only while your hotkey is held down. As soon as you release the key, the microphone immediately mutes again.
+
+### 3. Low-Latency Audio Feedback Cues
+- Distinct, low-latency audio tones play through your speakers or headphones so you know your mic status without taking your eyes off your work:
+  - 🟢 **Unmuted**: High-tone cheerful sound (`Pop`).
+  - 🔴 **Muted**: Low-tone subtle sound (`Tink`).
+- Sounds play independently through system audio without delaying or lagging microphone state transitions.
+- Can be toggled on/off, and previewed at any time in Settings.
+
+### 4. Hardware-Level CoreAudio Muting
+- Directly interfaces with macOS `CoreAudio`.
+- Toggles hardware mute (`kAudioDevicePropertyMute`) and simultaneously ramps volume scalar (`kAudioDevicePropertyVolumeScalar`) down to `0.0`.
+- Automatically restores your previous input gain level upon unmuting.
+- Prevents software audio leakage even in apps that don't respect basic software mutes.
+
+### 5. Input Device Switcher
+- Automatically lists all available input devices (Built-in MacBook Microphone, AirPods, USB headsets, studio audio interfaces).
+- Seamlessly switch between microphones directly from the menu bar dropdown or preferences menu.
+
+### 6. Microphone Test & Feedback Eliminator
+- **Live LED VU Meter**: 18-segment real-time volume bar that indicates audio presence and voice detection.
+- **Record & Playback Clip**: Avoids the sharp, loud, ringing acoustic feedback loop caused by live audio pass-through. Click **"Record Test Clip"**, speak into your mic, click **"Stop Test"**, and listen to the playback with full play/pause controls to verify sound quality.
+
+---
+
+## 🚀 How to Use MicMute
+
+1. **Launch the App**: Open `MicMute.app`. The microphone status icon will appear on your top menu bar.
+2. **Toggle Mute**:
+   - Press **`⌘\`** (`Command + \`) on your keyboard from anywhere.
+   - Or click the **MicMute menu bar icon** and select the top item to toggle.
+   - Or click the **Mute / Unmute** button in the Settings window.
+3. **Open Settings**:
+   - Press **`⌘,`** (`Command + ,`) while MicMute is active.
+   - Or click the menu bar item and choose **"Preferences / Settings..."**.
+4. **Change Modes**:
+   - Open Settings and select either **Toggle Mode** or **Push-to-Talk Mode**.
+5. **Switch Microphones**:
+   - Click the menu bar item, hover over **Microphone**, and select your desired input device.
+
+---
+
+## 🔒 Permissions & Setup Guide
+
+For MicMute to monitor input audio levels and detect global key releases, macOS requires standard system permissions.
+
+### 1. Microphone Permission
+Allows MicMute to monitor input levels, test audio, and control hardware volume.
+- **How to grant**:
+  1. Open **System Settings** ➔ **Privacy & Security** ➔ **Microphone**.
+  2. Locate **MicMute** in the list and toggle the switch **ON**.
+  3. *(Alternatively, click "Authorize" or "Open Settings" in the MicMute permissions panel).*
+
+### 2. Accessibility Permission
+Allows MicMute to detect keyup events for **Push-to-Talk Mode** and provide seamless global key interception.
+- **How to grant**:
+  1. Open **System Settings** ➔ **Privacy & Security** ➔ **Accessibility**.
+  2. Locate **MicMute** in the list and toggle the switch **ON**.
+  3. *(If prompted, enter your Mac administrator password or Touch ID).*
+
+> [!TIP]
+> **macOS Security Cache Refresh**:
+> If you recently updated the app and System Settings already displays the switch as **ON** but MicMute shows the permission as missing, simply **toggle the switch OFF and then back ON once**. This prompts macOS to refresh its security certificate cache for the application.
+
+---
+
+## ⌨️ Keyboard Shortcuts Reference
+
+| Shortcut | Action |
+| :--- | :--- |
+| **`⌘\`** | Global Mute / Unmute Toggle (or Push-to-Talk hold) |
+| **`⌘,`** | Open Preferences / Settings Window |
+| **`⌘Q`** | Quit MicMute |
+
+---
+
+## 🛠️ Building from Source
+
+If you wish to build MicMute from source:
+
+### Prerequisites
+- macOS 13.0 or later
+- Xcode 14.3+ or Swift 5.8+ command line tools
+
+### Build & Run
 ```bash
-# Build the release .app bundle
-make
+# Clone the repository
+git clone https://github.com/janny801/mic_mute.git
+cd mic_mute
 
-# Launch the app
-make run
-
-# Clean build artifacts
-make clean
-```
-
-### Or using the build script
-```bash
+# Build the release application bundle
 ./scripts/build_app.sh release
+
+# Launch MicMute
 open build/MicMute.app
 ```
 
 ---
 
-## Permissions & Onboarding
+## 📄 License
 
-1. **Accessibility Permission (Recommended for Push-to-Talk):**
-   - Required by macOS for `CGEventTap` to detect when the hotkey is released in Push-to-Talk mode.
-   - Can be granted with one click directly in the Preferences window ("Grant Permission"), which prompts macOS and opens **System Settings > Privacy & Security > Accessibility**.
-   - *Note*: In Toggle Mode, Carbon hotkeys function even before Accessibility is enabled!
-
-2. **Microphone Permission:**
-   - Authorizes the app to monitor and control system input audio devices.
-   - Can be requested directly inside the Preferences window.
+Distributed under the MIT License. See `LICENSE` for more information.
