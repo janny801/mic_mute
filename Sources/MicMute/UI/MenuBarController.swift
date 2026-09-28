@@ -13,6 +13,7 @@ public final class MenuBarController: NSObject {
     private var modeMenuItem: NSMenuItem?
     private var deviceMenuItem: NSMenuItem?
     private var permissionsMenuItem: NSMenuItem?
+    private var launchAtLoginMenuItem: NSMenuItem?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -73,9 +74,20 @@ public final class MenuBarController: NSObject {
         menu.addItem(permItem)
         self.permissionsMenuItem = permItem
 
+        // 5. Open at Login
+        let loginItem = NSMenuItem(
+            title: "Open at Login",
+            action: #selector(toggleLaunchAtLoginClicked),
+            keyEquivalent: ""
+        )
+        loginItem.target = self
+        loginItem.state = PermissionManager.shared.isLaunchAtLoginEnabled ? .on : .off
+        menu.addItem(loginItem)
+        self.launchAtLoginMenuItem = loginItem
+
         menu.addItem(NSMenuItem.separator())
 
-        // 4. Preferences / Settings...
+        // 6. Preferences / Settings...
         let prefsItem = NSMenuItem(
             title: "Preferences / Settings...",
             action: #selector(openSettingsClicked),
@@ -151,6 +163,13 @@ public final class MenuBarController: NSObject {
             .store(in: &cancellables)
 
         PermissionManager.shared.$microphoneStatus
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateUI()
+            }
+            .store(in: &cancellables)
+
+        PermissionManager.shared.$isLaunchAtLoginEnabled
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateUI()
@@ -244,12 +263,27 @@ public final class MenuBarController: NSObject {
                 permissionsMenuItem.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
             }
         }
+
+        // 5. Update Open at Login Item
+        if let launchAtLoginMenuItem = self.launchAtLoginMenuItem {
+            let isEnabled = PermissionManager.shared.isLaunchAtLoginEnabled
+            launchAtLoginMenuItem.state = isEnabled ? .on : .off
+            launchAtLoginMenuItem.image = NSImage(
+                systemSymbolName: isEnabled ? "checkmark.circle.fill" : "circle.dashed",
+                accessibilityDescription: nil
+            )
+        }
     }
 
     // MARK: - Actions
 
     @objc private func toggleMuteClicked() {
         AudioEngine.shared.toggleMute()
+    }
+
+    @objc private func toggleLaunchAtLoginClicked() {
+        let current = PermissionManager.shared.isLaunchAtLoginEnabled
+        PermissionManager.shared.setLaunchAtLogin(enabled: !current)
     }
 
     @objc private func openSettingsClicked() {

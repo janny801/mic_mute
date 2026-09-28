@@ -358,6 +358,54 @@ public struct SettingsView: View {
                     .help("Open Microphone Settings")
                 }
 
+                Divider()
+
+                // Open at Login
+                HStack {
+                    Image(systemName: permissions.isLaunchAtLoginEnabled ? "checkmark.circle.fill" : "circle.dashed")
+                        .foregroundColor(permissions.isLaunchAtLoginEnabled ? .green : .secondary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Open at Login")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text(permissions.isLaunchAtLoginEnabled ? "Enabled — launches automatically when you log into your Mac" : "Automatically launch MicMute when you log into your Mac")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: Binding(
+                        get: { permissions.isLaunchAtLoginEnabled },
+                        set: { permissions.setLaunchAtLogin(enabled: $0) }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
+
+                    // 3 Vertical Dots Menu
+                    Menu {
+                        Button("Open in System Settings...") {
+                            permissions.openSystemSettingsLoginItems()
+                        }
+                        Button("Check Status Again") {
+                            permissions.checkPermissions()
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 24, height: 24)
+                    .help("Open Login Items Settings")
+                }
+
                 let isMicGranted = (permissions.microphoneStatus == .authorized)
                 if !permissions.isAccessibilityGranted || !isMicGranted {
                     HStack(spacing: 6) {

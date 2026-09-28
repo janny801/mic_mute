@@ -70,6 +70,11 @@ The intuitive preferences window allows you to customize shortcuts, switch opera
 - **Live LED VU Meter**: 18-segment real-time volume bar that indicates audio presence and voice detection.
 - **Record & Playback Clip**: Avoids the sharp, loud, ringing acoustic feedback loop caused by live audio pass-through. Click **"Record Test Clip"**, speak into your mic, click **"Stop Test"**, and listen to the playback with full play/pause controls to verify sound quality.
 
+### 7. Open at Login
+- Easily enable MicMute to start automatically when you log into your Mac.
+- Toggle directly from the **MicMute menu bar dropdown** or from the **System Permissions** section in Settings.
+- Uses native macOS `SMAppService` with automatic background item registration.
+
 ---
 
 ## 🚀 How to Use MicMute
@@ -86,12 +91,14 @@ The intuitive preferences window allows you to customize shortcuts, switch opera
    - Open Settings and select either **Toggle Mode** or **Push-to-Talk Mode**.
 5. **Switch Microphones**:
    - Click the menu bar item, hover over **Microphone**, and select your desired input device.
+6. **Enable Open at Login**:
+   - Click the menu bar icon and select **"Open at Login"**, or toggle the switch in the **System Permissions** panel.
 
 ---
 
 ## 🔒 Permissions & Setup Guide
 
-For MicMute to monitor input audio levels and detect global key releases, macOS requires standard system permissions.
+For MicMute to monitor input audio levels, detect global key releases, and launch on startup, macOS provides standard system permissions.
 
 ### 1. Microphone Permission
 Allows MicMute to monitor input levels, test audio, and control hardware volume.
@@ -106,6 +113,13 @@ Allows MicMute to detect keyup events for **Push-to-Talk Mode** and provide seam
   1. Open **System Settings** ➔ **Privacy & Security** ➔ **Accessibility**.
   2. Locate **MicMute** in the list and toggle the switch **ON**.
   3. *(If prompted, enter your Mac administrator password or Touch ID).*
+
+### 3. Open at Login (Login Items)
+Allows MicMute to start automatically when you log in.
+- **How to enable**:
+  1. Open **MicMute Settings** ➔ scroll to **System Permissions** ➔ toggle **Open at Login** **ON**.
+  2. Or click the menu bar icon and check **Open at Login**.
+  3. macOS will register MicMute in **System Settings** ➔ **General** ➔ **Login Items & Extensions**.
 
 > [!TIP]
 > **macOS Security Cache Refresh**:
