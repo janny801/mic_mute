@@ -50,7 +50,7 @@ public struct SettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Mac Mic Mute")
+                Text("MicMute")
                     .font(.title2)
                     .fontWeight(.bold)
 

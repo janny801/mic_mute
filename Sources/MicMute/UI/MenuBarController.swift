@@ -77,7 +77,7 @@ public final class MenuBarController: NSObject {
 
         // 5. Quit
         let quitItem = NSMenuItem(
-            title: "Quit Mac Mic Mute",
+            title: "Quit MicMute",
             action: #selector(quitAppClicked),
             keyEquivalent: "q"
         )

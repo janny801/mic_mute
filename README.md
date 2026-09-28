@@ -1,4 +1,4 @@
-# Mac Mic Mute (Native macOS Menu Bar Utility)
+# MicMute (Native macOS Menu Bar Utility)
 
 A lightweight, native macOS menu bar utility built in **Swift and SwiftUI / AppKit** for system-level microphone muting and toggling with low-latency audio feedback, global push-to-talk support, and a preferences UI.
 
@@ -15,7 +15,7 @@ A lightweight, native macOS menu bar utility built in **Swift and SwiftUI / AppK
      - Operating mode indicator (`Toggle` or `Push-to-Talk`).
      - Default audio input device name.
      - "Preferences / Settings..." (`⌘,`).
-     - "Quit Mac Mic Mute" (`⌘Q`).
+     - "Quit MicMute" (`⌘Q`).
 
 2. **Global Hotkey & Interception**
    - **Default Hotkey**: `Command + \` (`⌘\`).
@@ -54,12 +54,12 @@ mac-mic-mute/
 ├── Package.swift                    # Swift Package Manager manifest
 ├── Makefile                         # Convenient build and run commands
 ├── scripts/
-│   └── build_app.sh                 # Builds release/debug MacMicMute.app bundle with icons & ad-hoc signing
+│   └── build_app.sh                 # Builds release/debug MicMute.app bundle with icons & ad-hoc signing
 ├── Resources/
 │   ├── Info.plist                   # App bundle metadata and permissions
 │   └── AppIcon.icns                 # Multi-resolution macOS application icon
 └── Sources/
-    └── MacMicMute/
+    └── MicMute/
         ├── main.swift               # Application entry point
         ├── App/
         │   └── AppDelegate.swift    # App lifecycle and initial window presentation
@@ -100,7 +100,7 @@ make clean
 ### Or using the build script
 ```bash
 ./scripts/build_app.sh release
-open build/MacMicMute.app
+open build/MicMute.app
 ```
 
 ---

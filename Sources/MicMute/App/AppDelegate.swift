@@ -20,7 +20,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindowController.shared.showWindow()
         }
 
-        NSLog("[MacMicMute] Application launched successfully with UI window and menu bar item.")
+        NSLog("[MicMute] Application launched successfully with UI window and menu bar item.")
     }
 
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

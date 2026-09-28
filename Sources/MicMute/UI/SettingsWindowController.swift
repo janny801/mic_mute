@@ -26,7 +26,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
 
-        newWindow.title = "Mac Mic Mute — Settings & Controls"
+        newWindow.title = "MicMute — Settings & Controls"
         newWindow.contentViewController = hostingController
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self

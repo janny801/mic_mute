@@ -2,22 +2,22 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacMicMute",
+    name: "MicMute",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "MacMicMute",
-            targets: ["MacMicMute"]
+            name: "MicMute",
+            targets: ["MicMute"]
         )
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "MacMicMute",
+            name: "MicMute",
             dependencies: [],
-            path: "Sources/MacMicMute"
+            path: "Sources/MicMute"
         )
     ]
 )

@@ -9,8 +9,8 @@ release:
 	@./scripts/build_app.sh release
 
 run: release
-	@echo "==> Launching MacMicMute.app..."
-	@open build/MacMicMute.app
+	@echo "==> Launching MicMute.app..."
+	@open build/MicMute.app
 
 clean:
 	@rm -rf .build build

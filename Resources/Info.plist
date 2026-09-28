@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>MacMicMute</string>
+    <string>MicMute</string>
     <key>CFBundleIdentifier</key>
-    <string>com.janred.MacMicMute</string>
+    <string>com.janred.MicMute</string>
     <key>CFBundleName</key>
-    <string>Mac Mic Mute</string>
+    <string>MicMute</string>
     <key>CFBundleDisplayName</key>
-    <string>Mac Mic Mute</string>
+    <string>MicMute</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>
@@ -21,7 +21,7 @@
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Mac Mic Mute needs microphone access to monitor and manage input audio devices and muting state.</string>
+    <string>MicMute needs microphone access to monitor and manage input audio devices and muting state.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>

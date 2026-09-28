@@ -99,7 +99,7 @@ public final class HotkeyManager: ObservableObject {
         )
 
         guard status == noErr else {
-            NSLog("[MacMicMute] Failed to register Carbon hotkey, status: \(status)")
+            NSLog("[MicMute] Failed to register Carbon hotkey, status: \(status)")
             return
         }
 
@@ -142,7 +142,7 @@ public final class HotkeyManager: ObservableObject {
         )
 
         if handlerStatus != noErr {
-            NSLog("[MacMicMute] Failed to install Carbon event handler, status: \(handlerStatus)")
+            NSLog("[MicMute] Failed to install Carbon event handler, status: \(handlerStatus)")
         }
     }
 
@@ -202,7 +202,7 @@ public final class HotkeyManager: ObservableObject {
         )
 
         guard let tapPort = tap else {
-            NSLog("[MacMicMute] CGEvent.tapCreate returned nil")
+            NSLog("[MicMute] CGEvent.tapCreate returned nil")
             return
         }
 

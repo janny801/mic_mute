@@ -5,7 +5,7 @@ import AudioToolbox
 public final class SoundCueManager {
     public static let shared = SoundCueManager()
 
-    private let soundQueue = DispatchQueue(label: "com.janred.MacMicMute.soundQueue", qos: .userInteractive)
+    private let soundQueue = DispatchQueue(label: "com.janred.MicMute.soundQueue", qos: .userInteractive)
 
     // Pre-cached sounds for minimal latency
     private var cachedSounds: [String: NSSound] = [:]

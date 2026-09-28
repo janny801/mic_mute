@@ -5,7 +5,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 cd "$DIR"
 
 CONFIGURATION="${1:-release}"
-APP_NAME="MacMicMute"
+APP_NAME="MicMute"
 BUILD_DIR="$DIR/build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 
