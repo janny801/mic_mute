@@ -75,10 +75,13 @@ The intuitive preferences window allows you to customize shortcuts, switch opera
 - Toggle directly from the **MicMute menu bar dropdown** or from the **System Permissions** section in Settings.
 - Uses native macOS `SMAppService` with automatic background item registration.
 
-### 8. Apple FaceTime Call Synchronization
-- Solves the macOS telephony issue where FaceTime bypasses system volume sliders using Voice Processing DSP and AGC.
-- Automatically synchronizes FaceTime's call-level **Mute / Unmute** switch whenever you toggle MicMute (<kbd>⌘</kbd> + <kbd>\</kbd>).
-- Provides 100% universal muting across both standard third-party apps (Discord, Zoom, Google Meet, Teams, Slack) and Apple FaceTime calls simultaneously.
+### 8. Bidirectional Apple FaceTime Synchronization & Call-Start Protection
+- **The FaceTime Problem**: Apple FaceTime uses private Voice Processing DSP and AGC audio pipelines (`AUVoiceProcessingIO`), bypassing standard CoreAudio software volume sliders.
+- **True Bidirectional Sync**:
+  - **MicMute ➔ FaceTime**: Toggling mute via global shortcut (`⌘\`), menu bar, or SketchyBar instantly syncs FaceTime's native call mute switch.
+  - **FaceTime ➔ MicMute**: Manually clicking the Mute button or pressing `⇧⌘M` inside FaceTime instantly mutes CoreAudio hardware and gain to zero, ensuring **Discord**, **Zoom**, **Teams**, and other background communication apps are simultaneously silenced.
+- **Call-Start Protection**: If your microphone is already muted in MicMute when you start or join a FaceTime call (which macOS typically opens unmuted by default), MicMute automatically detects the new call and immediately forces FaceTime into a muted state—protecting you from accidental hot-mic leaks.
+- **Toggleable in Settings**: Can be turned on or off anytime under **Call Integrations** in Preferences.
 
 ---
 

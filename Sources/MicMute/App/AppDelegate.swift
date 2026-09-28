@@ -17,6 +17,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = SettingsStore.shared
         _ = PermissionManager.shared
         _ = HotkeyManager.shared
+        _ = FaceTimeSyncManager.shared
 
         // Setup menu bar item
         MenuBarController.shared.setup()

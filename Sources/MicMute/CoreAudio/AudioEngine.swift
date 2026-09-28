@@ -407,7 +407,7 @@ public final class AudioEngine: ObservableObject {
         return targetState
     }
 
-    public func setMute(_ muted: Bool) {
+    public func setMute(_ muted: Bool, syncFaceTime: Bool = true) {
         guard defaultDeviceID != kAudioObjectUnknown else { return }
 
         isUpdatingInternally = true
@@ -436,7 +436,10 @@ public final class AudioEngine: ObservableObject {
 
         SoundCueManager.shared.playCue(forMuted: muted)
         notifySketchyBar()
-        FaceTimeSyncManager.shared.syncFaceTimeMute(shouldBeMuted: muted)
+
+        if syncFaceTime {
+            FaceTimeSyncManager.shared.syncFaceTimeMute(shouldBeMuted: muted)
+        }
     }
 
     private func notifySketchyBar() {
