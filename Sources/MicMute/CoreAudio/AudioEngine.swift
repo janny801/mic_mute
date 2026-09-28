@@ -435,6 +435,22 @@ public final class AudioEngine: ObservableObject {
         }
 
         SoundCueManager.shared.playCue(forMuted: muted)
+        notifySketchyBar()
+    }
+
+    private func notifySketchyBar() {
+        DispatchQueue.global(qos: .utility).async {
+            let paths = ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"]
+            for path in paths {
+                if FileManager.default.isExecutableFile(atPath: path) {
+                    let task = Process()
+                    task.executableURL = URL(fileURLWithPath: path)
+                    task.arguments = ["--trigger", "mic_change"]
+                    try? task.run()
+                    break
+                }
+            }
+        }
     }
 
     private func setHardwareMute(_ muted: Bool) {
