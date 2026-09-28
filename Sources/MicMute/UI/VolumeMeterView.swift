@@ -9,12 +9,12 @@ public struct VolumeMeterView: View {
     public init() {}
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Level Meter Bar
+        VStack(alignment: .leading, spacing: 12) {
+            // 1. Live VU Level Meter Bar
             HStack(spacing: 3) {
                 ForEach(0..<segmentCount, id: \.self) { index in
                     let threshold = Float(index) / Float(segmentCount)
-                    let isActive = micTest.isTesting && !audioEngine.isMuted && micTest.audioLevel >= threshold
+                    let isActive = micTest.isRecording && !audioEngine.isMuted && micTest.audioLevel >= threshold
 
                     RoundedRectangle(cornerRadius: 2)
                         .fill(segmentColor(for: index, isActive: isActive))
@@ -32,38 +32,89 @@ public struct VolumeMeterView: View {
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
             )
 
-            // Status & Controls
+            // 2. Main Action Row (Record / Stop Test)
             HStack(spacing: 12) {
                 Button(action: {
-                    micTest.toggleTesting()
+                    micTest.toggleRecording()
                 }) {
-                    Label(
-                        micTest.isTesting ? "Stop Test" : "Test Microphone",
-                        systemImage: micTest.isTesting ? "stop.fill" : "play.fill"
-                    )
+                    HStack(spacing: 6) {
+                        Image(systemName: micTest.isRecording ? "stop.fill" : (micTest.hasRecording ? "arrow.clockwise" : "mic.fill"))
+                        Text(micTest.isRecording ? "Stop Test" : (micTest.hasRecording ? "Record Again" : "Record Mic Test"))
+                    }
                 }
                 .controlSize(.small)
                 .buttonStyle(.borderedProminent)
-                .tint(micTest.isTesting ? .orange : .accentColor)
+                .tint(micTest.isRecording ? .red : (micTest.hasRecording ? .secondary : .accentColor))
 
-                Toggle("Hear myself (feedback)", isOn: $micTest.isHearMyselfEnabled)
-                    .font(.caption)
-                    .disabled(!micTest.isTesting)
-                    .help("Route mic audio to your output device. Use headphones to prevent echo.")
+                if micTest.isRecording {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                        Text(formatTime(micTest.recordingDuration))
+                            .font(.system(.caption, design: .monospaced))
+                            .fontWeight(.medium)
+                            .foregroundColor(.red)
+
+                        if audioEngine.isMuted {
+                            Text("— (Microphone Muted)")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        } else {
+                            Text("— Speak to record...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else if !micTest.hasRecording {
+                    Text("Click to record a test clip without feedback echo.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
                 Spacer()
+            }
 
-                if audioEngine.isMuted && micTest.isTesting {
-                    Text("Mic is Muted")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .fontWeight(.semibold)
-                } else if micTest.isTesting {
-                    Text(micTest.audioLevel > 0.05 ? "Signal Active" : "Speak to test...")
-                        .font(.caption)
-                        .foregroundColor(micTest.audioLevel > 0.05 ? .green : .secondary)
-                        .fontWeight(.medium)
+            // 3. Playback Controls Card (Appears after recording)
+            if micTest.hasRecording && !micTest.isRecording {
+                HStack(spacing: 12) {
+                    // Play / Pause Button
+                    Button(action: {
+                        micTest.togglePlayback()
+                    }) {
+                        Image(systemName: micTest.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundColor(.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .help(micTest.isPlaying ? "Pause Playback" : "Play Recorded Mic Clip")
+
+                    // Scrubber Slider
+                    Slider(
+                        value: Binding(
+                            get: { micTest.playbackProgress },
+                            set: { micTest.seek(to: $0) }
+                        ),
+                        in: 0...1
+                    )
+                    .controlSize(.small)
+
+                    // Timestamp
+                    Text("\(formatTime(micTest.playbackTime)) / \(formatTime(micTest.totalDuration))")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(minWidth: 70, alignment: .trailing)
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.accentColor.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
+                )
             }
         }
     }
@@ -81,5 +132,12 @@ public struct VolumeMeterView: View {
         } else {
             return Color.red
         }
+    }
+
+    private func formatTime(_ time: TimeInterval) -> String {
+        let totalSeconds = Int(max(0, time))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 }

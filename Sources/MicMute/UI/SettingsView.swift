@@ -35,7 +35,8 @@ public struct SettingsView: View {
             audioEngine.refreshInputDevices()
         }
         .onDisappear {
-            micTest.stopTesting()
+            micTest.stopRecording()
+            micTest.stopPlayback()
         }
         .onReceive(timer) { _ in
             permissions.checkPermissions()
