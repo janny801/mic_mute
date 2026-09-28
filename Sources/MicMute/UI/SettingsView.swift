@@ -5,6 +5,7 @@ public struct SettingsView: View {
     @ObservedObject var settings = SettingsStore.shared
     @ObservedObject var audioEngine = AudioEngine.shared
     @ObservedObject var permissions = PermissionManager.shared
+    @ObservedObject var micTest = MicTestManager.shared
 
     private let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
@@ -16,6 +17,7 @@ public struct SettingsView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    micDeviceAndTestSection
                     operatingModeSection
                     hotkeySection
                     audioFeedbackSection
@@ -27,9 +29,13 @@ public struct SettingsView: View {
             Divider()
             footerView
         }
-        .frame(width: 520, height: 580)
+        .frame(width: 530, height: 640)
         .onAppear {
             permissions.checkPermissions()
+            audioEngine.refreshInputDevices()
+        }
+        .onDisappear {
+            micTest.stopTesting()
         }
         .onReceive(timer) { _ in
             permissions.checkPermissions()
@@ -91,6 +97,46 @@ public struct SettingsView: View {
         .padding(.horizontal, 22)
         .padding(.top, 18)
         .padding(.bottom, 14)
+    }
+
+    // MARK: - Mic Device & Live Test Section
+    private var micDeviceAndTestSection: some View {
+        GroupBox(label: Label("Microphone Input & Test", systemImage: "mic.badge.waveform")) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Device Selector
+                HStack {
+                    Text("Input Device:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    Picker("", selection: Binding(
+                        get: { audioEngine.defaultDeviceID },
+                        set: { audioEngine.selectDevice($0) }
+                    )) {
+                        ForEach(audioEngine.availableInputDevices) { device in
+                            Text(device.name).tag(device.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 260)
+                }
+
+                Divider()
+
+                // Live VU Meter & Audio Test
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Volume Level & Test:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    VolumeMeterView()
+                }
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 4)
+        }
     }
 
     // MARK: - Operating Mode
@@ -315,7 +361,7 @@ public struct SettingsView: View {
 
             Spacer()
 
-            Button("Quit App") {
+            Button("Quit MicMute") {
                 NSApp.terminate(nil)
             }
             .controlSize(.small)

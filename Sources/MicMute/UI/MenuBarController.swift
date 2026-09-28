@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CoreAudio
 
 public final class MenuBarController: NSObject {
     public static let shared = MenuBarController()
@@ -51,13 +52,13 @@ public final class MenuBarController: NSObject {
         menu.addItem(modeItem)
         self.modeMenuItem = modeItem
 
-        // 3. Current Device
+        // 3. Current Device & Switching Submenu
         let deviceItem = NSMenuItem(
-            title: "Device: Microphone",
+            title: "Microphone",
             action: nil,
             keyEquivalent: ""
         )
-        deviceItem.isEnabled = false
+        deviceItem.submenu = NSMenu()
         menu.addItem(deviceItem)
         self.deviceMenuItem = deviceItem
 
@@ -100,6 +101,14 @@ public final class MenuBarController: NSObject {
 
         // Observe device name
         AudioEngine.shared.$deviceName
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateUI()
+            }
+            .store(in: &cancellables)
+
+        // Observe available devices
+        AudioEngine.shared.$availableInputDevices
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateUI()
@@ -173,6 +182,21 @@ public final class MenuBarController: NSObject {
         if let deviceMenuItem = self.deviceMenuItem {
             deviceMenuItem.title = "Input: \(deviceName)"
             deviceMenuItem.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: nil)
+
+            // Populate device switching submenu
+            let submenu = NSMenu()
+            for dev in AudioEngine.shared.availableInputDevices {
+                let item = NSMenuItem(
+                    title: dev.name,
+                    action: #selector(deviceSelected(_:)),
+                    keyEquivalent: ""
+                )
+                item.target = self
+                item.representedObject = dev.id
+                item.state = (dev.id == AudioEngine.shared.defaultDeviceID) ? .on : .off
+                submenu.addItem(item)
+            }
+            deviceMenuItem.submenu = submenu
         }
     }
 
@@ -188,5 +212,11 @@ public final class MenuBarController: NSObject {
 
     @objc private func quitAppClicked() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func deviceSelected(_ sender: NSMenuItem) {
+        if let deviceID = sender.representedObject as? AudioDeviceID {
+            AudioEngine.shared.selectDevice(deviceID)
+        }
     }
 }

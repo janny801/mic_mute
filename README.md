@@ -64,7 +64,8 @@ mac-mic-mute/
         ├── App/
         │   └── AppDelegate.swift    # App lifecycle and initial window presentation
         ├── CoreAudio/
-        │   └── AudioEngine.swift    # Hardware mute, volume scalar control, and device listeners
+        │   ├── AudioEngine.swift    # Hardware mute, volume scalar control, and device switching
+        │   └── MicTestManager.swift # Live audio input testing and volume metering
         ├── Sound/
         │   └── SoundCueManager.swift# Low-latency audio cues (Pop / Tink)
         ├── Hotkeys/
@@ -78,6 +79,7 @@ mac-mic-mute/
             ├── MenuBarController.swift      # NSStatusItem and dropdown menu management
             ├── SettingsWindowController.swift # NSWindow management for Preferences
             ├── SettingsView.swift           # SwiftUI Preferences UI
+            ├── VolumeMeterView.swift        # Real-time LED-style audio VU meter
             └── HotkeyRecorderView.swift     # Interactive key recording view
 ```
 
